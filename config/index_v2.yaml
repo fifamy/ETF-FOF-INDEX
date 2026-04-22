@@ -1,0 +1,123 @@
+name: CN ETF-FOF Dynamic Allocation Index v2
+base_currency: CNY
+rebalance_frequency: month_end
+start_index_level: 1000.0
+
+paths:
+  universe: data/universe_v2.csv
+
+bucket_order:
+  - equity_core_csi300
+  - equity_core_csia500
+  - equity_defensive_lowvol
+  - equity_defensive_dividend
+  - rate_bond_5y
+  - rate_bond_10y
+  - gold
+  - money_market
+
+strategic_weights:
+  equity_core_csi300: 0.18
+  equity_core_csia500: 0.12
+  equity_defensive_lowvol: 0.10
+  equity_defensive_dividend: 0.10
+  rate_bond_5y: 0.18
+  rate_bond_10y: 0.17
+  gold: 0.08
+  money_market: 0.07
+
+bucket_bounds:
+  equity_core_csi300:
+    min: 0.05
+    max: 0.25
+  equity_core_csia500:
+    min: 0.05
+    max: 0.20
+  equity_defensive_lowvol:
+    min: 0.05
+    max: 0.20
+  equity_defensive_dividend:
+    min: 0.05
+    max: 0.20
+  rate_bond_5y:
+    min: 0.10
+    max: 0.30
+  rate_bond_10y:
+    min: 0.10
+    max: 0.30
+  gold:
+    min: 0.05
+    max: 0.20
+  money_market:
+    min: 0.03
+    max: 0.20
+
+group_bounds:
+  equity_total:
+    buckets:
+      - equity_core_csi300
+      - equity_core_csia500
+      - equity_defensive_lowvol
+      - equity_defensive_dividend
+    min: 0.30
+    max: 0.60
+
+signals:
+  momentum_windows_days:
+    short: 63
+    long: 126
+  momentum_weights:
+    short: 0.60
+    long: 0.40
+  valuation_weight: 0.30
+  equity_scale: 0.15
+  gold_scale: 0.12
+  vol_window_days: 20
+  drawdown_window_days: 60
+  stress_vol_threshold: 0.22
+  stress_drawdown_threshold: -0.10
+
+allocation:
+  max_equity_tilt: 0.10
+  max_gold_tilt: 0.05
+  stress_equity_cut: 0.10
+  stress_reference_bucket: equity_core_csi300
+  gold_bucket: gold
+  equity_tilt_distribution:
+    equity_core_csi300: 0.35
+    equity_core_csia500: 0.25
+    equity_defensive_lowvol: 0.20
+    equity_defensive_dividend: 0.20
+  positive_equity_funding:
+    rate_bond_5y: 0.35
+    rate_bond_10y: 0.40
+    money_market: 0.25
+  negative_equity_sink:
+    rate_bond_5y: 0.35
+    rate_bond_10y: 0.40
+    money_market: 0.25
+  equity_bound_over_sink:
+    rate_bond_5y: 0.35
+    rate_bond_10y: 0.40
+    money_market: 0.25
+  equity_bound_under_source:
+    rate_bond_5y: 0.35
+    rate_bond_10y: 0.40
+    money_market: 0.25
+  equity_bound_under_target:
+    equity_core_csi300: 0.35
+    equity_core_csia500: 0.25
+    equity_defensive_lowvol: 0.20
+    equity_defensive_dividend: 0.20
+  gold_funding:
+    rate_bond_5y: 0.40
+    rate_bond_10y: 0.35
+    money_market: 0.25
+  stress_sink:
+    gold: 0.15
+    rate_bond_5y: 0.35
+    rate_bond_10y: 0.35
+    money_market: 0.15
+
+costs:
+  transaction_cost_bps: 8.0

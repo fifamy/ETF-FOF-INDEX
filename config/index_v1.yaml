@@ -1,0 +1,82 @@
+name: CN ETF-FOF Dynamic Allocation Index v1
+base_currency: CNY
+rebalance_frequency: month_end
+start_index_level: 1000.0
+
+paths:
+  universe: data/universe_v1.csv
+
+bucket_order:
+  - equity_core
+  - equity_defensive
+  - rate_bond
+  - gold
+  - money_market
+
+strategic_weights:
+  equity_core: 0.30
+  equity_defensive: 0.15
+  rate_bond: 0.35
+  gold: 0.10
+  money_market: 0.10
+
+bucket_bounds:
+  equity_core:
+    min: 0.10
+    max: 0.35
+  equity_defensive:
+    min: 0.05
+    max: 0.25
+  rate_bond:
+    min: 0.25
+    max: 0.60
+  gold:
+    min: 0.05
+    max: 0.20
+  money_market:
+    min: 0.05
+    max: 0.25
+
+group_bounds:
+  equity_total:
+    buckets:
+      - equity_core
+      - equity_defensive
+    min: 0.20
+    max: 0.50
+
+signals:
+  momentum_windows_days:
+    short: 63
+    long: 126
+  momentum_weights:
+    short: 0.60
+    long: 0.40
+  valuation_weight: 0.30
+  equity_scale: 0.15
+  gold_scale: 0.12
+  vol_window_days: 20
+  drawdown_window_days: 60
+  stress_vol_threshold: 0.22
+  stress_drawdown_threshold: -0.10
+
+allocation:
+  max_equity_tilt: 0.10
+  max_gold_tilt: 0.05
+  stress_equity_cut: 0.10
+  positive_equity_funding:
+    rate_bond: 0.70
+    money_market: 0.30
+  negative_equity_sink:
+    rate_bond: 0.70
+    money_market: 0.30
+  gold_funding:
+    rate_bond: 0.70
+    money_market: 0.30
+  stress_sink:
+    gold: 0.20
+    rate_bond: 0.56
+    money_market: 0.24
+
+costs:
+  transaction_cost_bps: 8.0

@@ -1,0 +1,9 @@
+bucket,symbol,name,instrument_type,enabled,priority,liquidity_score,size_score,fee_bps,tracking_error_bps
+equity_core_csi300,510300.SH,华泰柏瑞沪深300ETF,etf,1,100,95,100,20,2.29
+equity_core_csia500,563360.SH,A500ETF华泰柏瑞,etf,1,95,100,84,20,2.07
+equity_defensive_lowvol,512890.SH,华泰柏瑞红利低波ETF,etf,1,100,74,90,60,6.60
+equity_defensive_dividend,510880.SH,华泰柏瑞红利ETF,etf,1,95,66,78,60,5.74
+rate_bond_5y,511010.SH,国泰上证5年期国债ETF,etf,1,100,72,62,20,2.45
+rate_bond_10y,511260.SH,十年国债ETF国泰,etf,1,98,92,70,20,4.11
+gold,518880.SH,华安黄金ETF,etf,1,100,96,88,60,15.00
+money_market,511880.SH,银华日利ETF,etf,1,100,100,100,39,4.00

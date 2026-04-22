@@ -1,0 +1,7 @@
+bucket,symbol,name,instrument_type,enabled,priority,liquidity_score,size_score,fee_bps,tracking_error_bps
+equity_core,510300.SH,华泰柏瑞沪深300ETF,etf,1,100,95,95,50,10
+equity_defensive,512890.SH,华泰柏瑞红利低波ETF,etf,1,100,84,79,50,18
+rate_bond,511010.SH,国泰上证5年期国债ETF,etf,1,100,88,74,30,8
+gold,518880.SH,华安黄金ETF,etf,1,100,90,88,60,15
+money_market,511990.SH,华宝添益ETF,etf,1,100,94,90,15,4
+

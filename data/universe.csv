@@ -1,0 +1,13 @@
+bucket,symbol,name,instrument_type,enabled,priority,liquidity_score,size_score,fee_bps,tracking_error_bps
+equity_core,510300.SH,沪深300ETF,etf,1,100,95,95,50,10
+equity_core,159919.SZ,嘉实沪深300ETF,etf,1,98,92,90,50,11
+equity_core,563220.SH,富国中证A500ETF,etf,1,95,85,82,15,12
+equity_defensive,512890.SH,红利低波ETF,etf,1,100,84,79,50,18
+equity_defensive,515080.SH,招商中证红利ETF,etf,1,95,82,78,50,20
+rate_bond,511010.SH,国债ETF,etf,1,100,88,74,30,8
+rate_bond,511260.SH,十年国债ETF,etf,1,95,80,72,30,9
+gold,518880.SH,黄金ETF,etf,1,100,90,88,60,15
+gold,159934.SZ,黄金ETF易方达,etf,1,98,88,86,60,15
+gold,159937.SZ,黄金ETF博时,etf,1,97,87,87,60,15
+money_market,511990.SH,货币ETF,etf,1,100,94,90,15,4
+money_market,511880.SH,银华日利ETF,etf,1,95,90,84,15,4

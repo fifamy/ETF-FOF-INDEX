@@ -1,0 +1,13 @@
+bucket,role,tier,symbol,name,exposure_type,download_priority,use_case,selection_notes
+equity_core,中国权益beta,primary,510300.SH,华泰柏瑞沪深300ETF,沪深300宽基,1,主样本,历史长+规模大+流动性强
+equity_core,中国权益beta,backup_1,159919.SZ,嘉实沪深300ETF,沪深300宽基,2,一级备选,同指数替代+深市流动性好
+equity_core,中国权益beta,backup_2,563220.SH,富国中证A500ETF,中证A500宽基,3,二级备选,宽基替代但历史较短
+equity_defensive,权益防御,primary,512890.SH,华泰柏瑞红利低波ETF,红利低波,1,主样本,防御属性明确
+equity_defensive,权益防御,backup_1,515080.SH,招商中证红利ETF,红利,2,一级备选,红利因子替代
+rate_bond,利率久期,primary,511010.SH,国泰上证5年期国债ETF,5年期国债,1,主样本,中等久期+稳定器
+rate_bond,利率久期,backup_1,511260.SH,上证10年期国债ETF,10年期国债,2,一级备选,久期更长+弹性更强
+gold,通胀和风险对冲,primary,518880.SH,华安黄金ETF,黄金现货,1,主样本,规模大+历史长
+gold,通胀和风险对冲,backup_1,159934.SZ,黄金ETF易方达,黄金现货,2,一级备选,深市替代
+gold,通胀和风险对冲,backup_2,159937.SZ,黄金ETF博时,黄金现货,3,二级备选,深市替代
+money_market,现金管理与缓冲,primary,511990.SH,华宝添益ETF,场内货币,1,主样本,规模大+流动性强
+money_market,现金管理与缓冲,backup_1,511880.SH,银华日利ETF,场内货币,2,一级备选,成熟替代

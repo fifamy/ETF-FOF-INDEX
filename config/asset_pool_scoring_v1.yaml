@@ -1,0 +1,78 @@
+as_of_date: 2026-04-20
+
+hard_filters:
+  exchanges:
+    - SSE
+    - SZSE
+  require_is_etf: true
+  exclude_qdii: true
+  exclude_leveraged_inverse: true
+  min_listed_days: 365
+  min_avg_turnover_1m_cny: 25000000
+  min_aum_cny: 1000000000
+  min_bucket_fit_score: 60
+
+anchors:
+  avg_turnover_1m_cny:
+    min: 25000000
+    target: 500000000
+    scale: log
+  aum_cny:
+    min: 1000000000
+    target: 100000000000
+    scale: log
+  total_fee_bp:
+    best: 15
+    worst: 80
+  listed_days:
+    min: 365
+    target: 3650
+  tracking_error_1y_pct:
+    best: 0.02
+    worst: 3.00
+  tracking_deviation_daily_pct:
+    best: 0.02
+    worst: 0.30
+
+weights:
+  equity_core:
+    bucket_fit_score: 0.20
+    liquidity_score: 0.25
+    scale_score: 0.20
+    fee_score: 0.10
+    tracking_score: 0.15
+    tenure_score: 0.05
+    structure_score: 0.05
+  equity_defensive:
+    bucket_fit_score: 0.25
+    liquidity_score: 0.20
+    scale_score: 0.15
+    fee_score: 0.10
+    tracking_score: 0.15
+    tenure_score: 0.05
+    structure_score: 0.10
+  rate_bond:
+    bucket_fit_score: 0.20
+    liquidity_score: 0.20
+    scale_score: 0.15
+    fee_score: 0.10
+    tracking_score: 0.10
+    tenure_score: 0.10
+    structure_score: 0.15
+  gold:
+    bucket_fit_score: 0.25
+    liquidity_score: 0.20
+    scale_score: 0.20
+    fee_score: 0.10
+    tracking_score: 0.10
+    tenure_score: 0.05
+    structure_score: 0.10
+  money_market:
+    bucket_fit_score: 0.25
+    liquidity_score: 0.30
+    scale_score: 0.20
+    fee_score: 0.10
+    tracking_score: 0.00
+    tenure_score: 0.10
+    structure_score: 0.05
+

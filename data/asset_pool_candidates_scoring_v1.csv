@@ -1,0 +1,14 @@
+bucket,benchmark_group,tier,symbol,name,exchange,listed_date,is_etf,is_qdii,is_leveraged_inverse,avg_turnover_1m_cny,aum_cny,total_fee_bp,tracking_error_1y_pct,tracking_deviation_daily_pct,tracking_proxy_score,has_primary_market_maker,has_option_underlying,bucket_fit_score,structure_score,notes
+equity_core,CSI300,primary,510300.SH,华泰柏瑞沪深300ETF,SSE,2012-05-28,1,0,0,,,,,95,1,1,95,95,核心宽基主样本
+equity_core,CSI300,backup_1,159919.SZ,嘉实沪深300ETF,SZSE,2012-05-07,1,0,0,,,,,90,0,1,95,90,同指数深市替代
+equity_core,CSI_A500,backup_2,563220.SH,富国中证A500ETF,SSE,2024-10-15,1,0,0,,,,,75,1,0,85,75,A500宽基替代但历史较短
+equity_defensive,CSI_DIV_LOWVOL,primary,512890.SH,华泰柏瑞红利低波ETF,SSE,2019-01-18,1,0,0,,,,,90,1,0,95,90,权益防御主样本
+equity_defensive,CSI_DIVIDEND,backup_1,515080.SH,招商中证红利ETF,SSE,2019-12-27,1,0,0,,,,,85,1,0,85,85,红利风格替代
+rate_bond,SSE_5Y_GOV,primary,511010.SH,国泰上证5年期国债ETF,SSE,2013-03-25,1,0,0,,,,,90,1,0,95,90,中等久期稳定器
+rate_bond,SSE_10Y_GOV,backup_1,511260.SH,上证10年期国债ETF,SSE,2017-08-04,1,0,0,,,,,85,1,0,85,85,长久期弹性替代
+gold,DOMESTIC_SPOT_GOLD,primary,518880.SH,华安黄金ETF,SSE,2013-07-29,1,0,0,,,,,90,1,0,95,90,黄金主样本
+gold,DOMESTIC_SPOT_GOLD,backup_1,159934.SZ,黄金ETF易方达,SZSE,2013-11-29,1,0,0,,,,,85,0,0,90,85,深市黄金替代
+gold,DOMESTIC_SPOT_GOLD,backup_2,159937.SZ,黄金ETF博时,SZSE,2014-08-13,1,0,0,,,,,85,0,0,88,85,深市黄金替代
+money_market,CASH_MGMT,primary,511990.SH,华宝添益ETF,SSE,2013-01-28,1,0,0,,,,,90,1,0,95,90,现金管理主样本
+money_market,CASH_MGMT,backup_1,511880.SH,银华日利ETF,SSE,2013-04-18,1,0,0,,,,,85,0,0,90,85,现金管理替代
+
