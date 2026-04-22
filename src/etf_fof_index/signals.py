@@ -35,7 +35,7 @@ def compute_signals(
     vol_window = int(signal_cfg["vol_window_days"])
     drawdown_window = int(signal_cfg["drawdown_window_days"])
 
-    returns = bucket_prices.pct_change().fillna(0.0)
+    returns = bucket_prices.pct_change(fill_method=None).fillna(0.0)
     momentum_short = bucket_prices / bucket_prices.shift(short_window) - 1.0
     momentum_long = bucket_prices / bucket_prices.shift(long_window) - 1.0
     composite_momentum = momentum_short * short_weight + momentum_long * long_weight
@@ -78,4 +78,3 @@ def compute_signals(
     signals = pd.concat(records, ignore_index=True)
     signals = signals.set_index(["date", "bucket"]).sort_index()
     return signals
-

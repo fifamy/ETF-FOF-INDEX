@@ -33,7 +33,7 @@ def run_backtest(
     label: str,
 ) -> BacktestResult:
     bucket_order = list(config["bucket_order"])
-    returns = bucket_prices.pct_change().fillna(0.0)
+    returns = bucket_prices.pct_change(fill_method=None).fillna(0.0)
     cost_rate = float(config["costs"]["transaction_cost_bps"]) / 10000.0
     strategic = pd.Series(config["strategic_weights"], dtype=float).reindex(bucket_order)
 
@@ -82,4 +82,3 @@ def run_backtest(
     levels_frame = pd.DataFrame(levels).set_index("date").sort_index()
     holdings_frame = pd.DataFrame(holdings).set_index("date").sort_index()
     return BacktestResult(levels=levels_frame, holdings=holdings_frame)
-

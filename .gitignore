@@ -3,6 +3,10 @@
 __pycache__/
 *.pyc
 .vendor/
+.venv/
+.cache/
 output/*
 !output/.gitkeep
-
+!output/rolling_quarterly_strategy_comparison/
+output/rolling_quarterly_strategy_comparison/*
+!output/rolling_quarterly_strategy_comparison/dashboard.html
