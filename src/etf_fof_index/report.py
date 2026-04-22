@@ -52,6 +52,62 @@ def _summary_metrics(index_series: pd.Series, return_series: pd.Series) -> Dict[
     }
 
 
+def summarize_period_metrics(index_levels: pd.DataFrame, freq: str) -> pd.DataFrame:
+    if not isinstance(index_levels.index, pd.DatetimeIndex):
+        raise TypeError("index_levels index must be a DatetimeIndex")
+
+    label_formats = {
+        "YE": "%Y",
+        "ME": "%Y-%m",
+    }
+    label_format = label_formats.get(freq)
+    if label_format is None:
+        raise ValueError(f"unsupported freq: {freq}")
+
+    levels = index_levels.sort_index().copy()
+    if levels.empty:
+        return pd.DataFrame(
+            columns=[
+                "period",
+                "period_start",
+                "period_end",
+                "observations",
+                "strategy",
+                "period_return",
+                "annualized_volatility",
+                "max_drawdown",
+            ]
+        )
+
+    returns = levels.pct_change().fillna(0.0)
+    rows = []
+
+    for period_end, period_returns in returns.groupby(pd.Grouper(freq=freq)):
+        if period_returns.empty:
+            continue
+
+        period_start = period_returns.index.min()
+        period_last = period_returns.index.max()
+        for strategy in period_returns.columns:
+            series = period_returns[strategy].astype(float)
+            path = (1.0 + series).cumprod()
+            drawdown = path / path.cummax() - 1.0
+            rows.append(
+                {
+                    "period": period_end.strftime(label_format),
+                    "period_start": period_start.strftime("%Y-%m-%d"),
+                    "period_end": period_last.strftime("%Y-%m-%d"),
+                    "observations": int(series.shape[0]),
+                    "strategy": strategy,
+                    "period_return": float((1.0 + series).prod() - 1.0),
+                    "annualized_volatility": float(series.std(ddof=0) * np.sqrt(252.0)),
+                    "max_drawdown": float(drawdown.min()),
+                }
+            )
+
+    return pd.DataFrame(rows)
+
+
 def _format_metric_table(levels: pd.DataFrame) -> pd.DataFrame:
     strategy = _summary_metrics(levels["strategy_index"], levels["strategy_return"])
     baseline = _summary_metrics(levels["baseline_index"], levels["baseline_return"])

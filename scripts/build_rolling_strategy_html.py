@@ -13,6 +13,7 @@ ROOT = bootstrap()
 import pandas as pd  # noqa: E402
 
 from etf_fof_index.config import load_config  # noqa: E402
+from etf_fof_index.report import summarize_period_metrics  # noqa: E402
 from run_quarterly_rolling_weight_strategy import run_study  # noqa: E402
 
 
@@ -30,6 +31,13 @@ DETAIL_SPECS = [
         "lookback_months": 6,
         "detail_dir": ROOT / "output" / "rolling_quarterly_v2_risk_candidate_mindd6",
         "note": "纯压回撤",
+    },
+    {
+        "name": "12M收益优先(进攻版)",
+        "selection_rule": "max_return",
+        "lookback_months": 12,
+        "detail_dir": ROOT / "output" / "rolling_quarterly_v2_return_candidate_maxret12",
+        "note": "冲收益",
     },
     {
         "name": "36M夏普护栏(均衡版)",
@@ -51,6 +59,7 @@ COLOR_MAP = {
     "当前V2": "#243b53",
     "12M回撤优先(正式版)": "#d1495b",
     "6M回撤优先(极致降回撤)": "#edae49",
+    "12M收益优先(进攻版)": "#c1121f",
     "36M夏普护栏(均衡版)": "#00798c",
     "36MCalmar护栏(防守版)": "#4f772d",
 }
@@ -118,8 +127,7 @@ def _read_metrics_row(detail_dir: Path) -> Dict[str, float]:
     return dynamic.to_dict()
 
 
-def _ensure_six_month_detail(args: argparse.Namespace) -> Path:
-    spec = next(item for item in DETAIL_SPECS if item["lookback_months"] == 6)
+def _ensure_detail(args: argparse.Namespace, spec: Dict[str, object]) -> Path:
     detail_dir = Path(spec["detail_dir"])
     metrics_file = detail_dir / "comparison_metrics.csv"
     if metrics_file.exists():
@@ -129,12 +137,17 @@ def _ensure_six_month_detail(args: argparse.Namespace) -> Path:
         price_path=Path(args.prices),
         output_dir=detail_dir,
         valuation_path=Path(args.valuation) if args.valuation else None,
-        lookback_months=6,
-        selection_rule="min_drawdown",
+        lookback_months=int(spec["lookback_months"]),
+        selection_rule=str(spec["selection_rule"]),
         drawdown_band=float(args.drawdown_band),
         write_outputs=True,
     )
     return detail_dir
+
+
+def _ensure_required_details(args: argparse.Namespace) -> None:
+    for spec in DETAIL_SPECS:
+        _ensure_detail(args, spec)
 
 
 def _load_current_weights(config_path: Path) -> Dict[str, float]:
@@ -187,6 +200,86 @@ def _build_comparison_table(metrics: pd.DataFrame) -> str:
             ]
         )
     return _html_table(headers, rows)
+
+
+def _build_period_metric_table(
+    period_metrics: pd.DataFrame,
+    strategy_order: List[str],
+    value_column: str,
+    period_label: str,
+) -> str:
+    pivot = period_metrics.pivot(index="period", columns="strategy", values=value_column)
+    pivot = pivot.reindex(columns=strategy_order)
+    pivot = pivot.sort_index(ascending=False)
+
+    headers = [period_label, *pivot.columns]
+    rows = []
+    for period, row in pivot.iterrows():
+        cells = [f"<td>{html.escape(str(period))}</td>"]
+        cells.extend(f"<td>{_format_pct(float(value))}</td>" for value in row)
+        rows.append(cells)
+    return _html_table(headers, rows, table_class="data-table compact period-table")
+
+
+def _build_period_sections(
+    index_levels: pd.DataFrame,
+    strategy_order: List[str],
+    comparison_dir: Path,
+    sample_end: str,
+) -> str:
+    yearly = summarize_period_metrics(index_levels, freq="YE")
+    monthly = summarize_period_metrics(index_levels, freq="ME")
+    yearly.to_csv(comparison_dir / "yearly_period_metrics.csv", index=False)
+    monthly.to_csv(comparison_dir / "monthly_period_metrics.csv", index=False)
+
+    sections = []
+    for section_id, title, note, period_label, metrics in [
+        (
+            "yearly-breakdown",
+            "年度收益 / 波动 / 回撤对比",
+            f"波动按各年份内日收益折算为年化波动，回撤按年初重置后计算，表格按最近年份倒序；最新年份为截至 {sample_end} 的部分期间。",
+            "年份",
+            yearly,
+        ),
+        (
+            "monthly-breakdown",
+            "月度收益 / 波动 / 回撤对比",
+            f"波动按各月份内日收益折算为年化波动，回撤按月初重置后计算，表格按最近月份倒序；最新月份为截至 {sample_end} 的部分期间。",
+            "月份",
+            monthly,
+        ),
+    ]:
+        sections.append(
+            "\n".join(
+                [
+                    f'<section class="section" id="{section_id}">',
+                    f"<h2>{html.escape(title)}</h2>",
+                    f'<p class="section-note">{html.escape(note)}</p>',
+                    '<div class="period-table-stack">',
+                    '<div class="panel-card">',
+                    '<h3>收益对比</h3>',
+                    '<div class="table-wrap">',
+                    _build_period_metric_table(metrics, strategy_order, "period_return", period_label),
+                    '</div>',
+                    '</div>',
+                    '<div class="panel-card">',
+                    '<h3>波动对比</h3>',
+                    '<div class="table-wrap">',
+                    _build_period_metric_table(metrics, strategy_order, "annualized_volatility", period_label),
+                    '</div>',
+                    '</div>',
+                    '<div class="panel-card">',
+                    '<h3>回撤对比</h3>',
+                    '<div class="table-wrap">',
+                    _build_period_metric_table(metrics, strategy_order, "max_drawdown", period_label),
+                    '</div>',
+                    '</div>',
+                    '</div>',
+                    '</section>',
+                ]
+            )
+        )
+    return "".join(sections)
 
 
 def _build_weight_summary_table(weights: pd.DataFrame, common_start: str) -> str:
@@ -319,7 +412,7 @@ def main() -> None:
     output_html = Path(args.output_html)
     output_html.parent.mkdir(parents=True, exist_ok=True)
 
-    _ensure_six_month_detail(args)
+    _ensure_required_details(args)
 
     metrics = pd.read_csv(comparison_dir / "comparison_table.csv")
     metrics = metrics.sort_values("lookback_months").copy()
@@ -328,6 +421,7 @@ def main() -> None:
     metrics = metrics.sort_values("strategy").reset_index(drop=True)
     sample_start = str(metrics["sample_start"].iloc[0])
     sample_end = str(metrics["sample_end"].iloc[0])
+    index_levels = pd.read_csv(comparison_dir / "common_window_index_levels.csv", index_col="date", parse_dates=["date"])
 
     nav_svg = _embed_svg(comparison_dir / "common_window_nav.svg")
     drawdown_svg = _embed_svg(comparison_dir / "common_window_drawdown.svg")
@@ -410,9 +504,14 @@ def main() -> None:
       margin: 0 0 14px;
       font-size: 22px;
     }}
+    .section-note {{
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }}
     .summary-grid {{
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 16px;
     }}
     .summary-card {{
@@ -501,6 +600,12 @@ def main() -> None:
       padding: 8px 8px;
       font-size: 12px;
     }}
+    .period-table th, .period-table td {{
+      text-align: right;
+    }}
+    .period-table th:first-child, .period-table td:first-child {{
+      text-align: left;
+    }}
     .narrow {{
       max-width: 420px;
     }}
@@ -581,6 +686,10 @@ def main() -> None:
       padding: 8px 12px;
       font-size: 13px;
     }}
+    .period-table-stack {{
+      display: grid;
+      gap: 16px;
+    }}
     .footer {{
       margin-top: 28px;
       color: var(--muted);
@@ -611,19 +720,22 @@ def main() -> None:
   <div class="wrap">
     <section class="hero">
       <h1>动态季度滚动方案对比</h1>
-      <p>这份本地 HTML 报告把当前 V2、正式版 12M、极致降回撤 6M、36M 夏普护栏和 36M Calmar 护栏放到同一页。对比口径统一到共同样本区间，并补充了每个动态方案的最新权重摘要、候选组合出现频次和最近 8 次季度决策。</p>
+      <p>这份本地 HTML 报告把当前 V2、正式版 12M、极致降回撤 6M、收益优先 12M、36M 夏普护栏和 36M Calmar 护栏放到同一页。对比口径统一到共同样本区间，并补充了每个动态方案的最新权重摘要、候选组合出现频次和最近 8 次季度决策。</p>
       <div class="hero-meta">
         <div><span>共同样本区间</span><strong>{html.escape(sample_start)} 至 {html.escape(sample_end)}</strong></div>
         <div><span>调仓频率</span><strong>每 3 个月</strong></div>
         <div><span>候选来源</span><strong>5% 权重网格</strong></div>
-        <div><span>当前更均衡候选</span><strong>36M夏普护栏</strong></div>
+        <div><span>新增进攻候选</span><strong>12M收益优先</strong></div>
       </div>
       <div class="anchor-links">
         <a href="#charts">总图表</a>
         <a href="#table">总表</a>
+        <a href="#yearly-breakdown">年度拆解</a>
+        <a href="#monthly-breakdown">月度拆解</a>
         <a href="#current-v2">当前V2</a>
         <a href="#12M回撤优先(正式版)">12M正式版</a>
         <a href="#6M回撤优先(极致降回撤)">6M回撤优先</a>
+        <a href="#12M收益优先(进攻版)">12M收益优先</a>
         <a href="#36M夏普护栏(均衡版)">36M夏普护栏</a>
         <a href="#36MCalmar护栏(防守版)">36MCalmar护栏</a>
       </div>
@@ -652,6 +764,8 @@ def main() -> None:
         {_build_comparison_table(metrics)}
       </div>
     </section>
+
+    {_build_period_sections(index_levels, order, comparison_dir, sample_end)}
 
     <section class="section">
       <h2>动态权重与季度决策</h2>

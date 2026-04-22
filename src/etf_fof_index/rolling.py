@@ -23,6 +23,10 @@ class RollingWindow:
 
 
 SELECTION_RULES: Dict[str, Dict[str, object]] = {
+    "max_return": {
+        "label": "收益优先",
+        "description": "直接选择观察窗年化收益最高的组合，并用夏普、Calmar、波动和回撤做并列决胜。",
+    },
     "min_drawdown": {
         "label": "回撤优先",
         "description": "先选观察窗最大回撤最浅的组合，并用收益、夏普和波动做并列决胜。",
@@ -151,7 +155,7 @@ def selection_rule_description(selection_rule: str, drawdown_band: float) -> str
     if selection_rule not in SELECTION_RULES:
         raise ValueError(f"Unsupported selection_rule: {selection_rule}")
     base = str(SELECTION_RULES[selection_rule]["description"])
-    if selection_rule == "min_drawdown":
+    if selection_rule in {"min_drawdown", "max_return"}:
         return base
     return f"{base} 当前回撤保护带宽设为 `{drawdown_band:.2%}`。"
 
@@ -173,6 +177,12 @@ def rank_candidates(metrics: pd.DataFrame, selection_rule: str = "min_drawdown",
 
     ranked = metrics.copy()
     ranked["candidate_index"] = ranked.index
+
+    if selection_rule == "max_return":
+        return ranked.sort_values(
+            ["annual_return", "sharpe", "calmar", "annual_volatility", "max_drawdown"],
+            ascending=[False, False, False, True, False],
+        ).reset_index(drop=True)
 
     if selection_rule == "min_drawdown":
         return ranked.sort_values(

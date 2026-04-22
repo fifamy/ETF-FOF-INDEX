@@ -76,6 +76,23 @@ def _format_num_columns(frame: pd.DataFrame, columns: Iterable[str]) -> pd.DataF
     return out
 
 
+def _pick_best_by_rule(summary: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for selection_rule, frame in summary.groupby("selection_rule", sort=False):
+        if selection_rule == "max_return":
+            best = frame.sort_values(
+                ["dynamic_annual_return", "annual_return_delta", "dynamic_sharpe"],
+                ascending=[False, False, False],
+            ).iloc[0]
+        else:
+            best = frame.sort_values(
+                ["drawdown_improvement", "annual_return_delta", "sharpe_delta"],
+                ascending=[False, False, False],
+            ).iloc[0]
+        rows.append(best.to_dict())
+    return pd.DataFrame(rows).reset_index(drop=True)
+
+
 def _common_window_rows(results: List[dict]) -> pd.DataFrame:
     common_start = max(pd.Timestamp(result["sample_start"]) for result in results)
     common_end = min(pd.Timestamp(result["sample_end"]) for result in results)
@@ -249,16 +266,19 @@ def main() -> None:
     native_summary.to_csv(output_dir / "summary.csv", index=False)
     common_summary.to_csv(output_dir / "common_window_summary.csv", index=False)
 
-    best_native = native_summary.sort_values(
-        ["drawdown_improvement", "annual_return_delta", "sharpe_delta"],
-        ascending=[False, False, False],
-    ).groupby("selection_rule", as_index=False).head(1).reset_index(drop=True)
+    best_native = _pick_best_by_rule(native_summary)
     best_native.to_csv(output_dir / "best_by_rule.csv", index=False)
 
-    overall_best = common_summary.sort_values(
-        ["drawdown_improvement", "annual_return_delta", "sharpe_delta"],
-        ascending=[False, False, False],
-    ).iloc[0]
+    if set(rules) == {"max_return"}:
+        overall_best = common_summary.sort_values(
+            ["dynamic_annual_return", "annual_return_delta", "dynamic_sharpe"],
+            ascending=[False, False, False],
+        ).iloc[0]
+    else:
+        overall_best = common_summary.sort_values(
+            ["drawdown_improvement", "annual_return_delta", "sharpe_delta"],
+            ascending=[False, False, False],
+        ).iloc[0]
 
     for _, row in best_native.iterrows():
         combo_dir = detail_root / f"{row['selection_rule']}_lookback{int(row['lookback_months'])}"

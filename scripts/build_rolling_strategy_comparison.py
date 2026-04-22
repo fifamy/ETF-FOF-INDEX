@@ -12,6 +12,8 @@ ROOT = bootstrap()
 
 import pandas as pd  # noqa: E402
 
+from etf_fof_index.report import _summary_metrics  # noqa: E402
+from etf_fof_index.rolling import selection_rule_label  # noqa: E402
 from run_quarterly_rolling_weight_strategy import run_study  # noqa: E402
 
 
@@ -20,6 +22,7 @@ STRATEGIES = [
         "name": "12M回撤优先(正式版)",
         "selection_rule": "min_drawdown",
         "lookback_months": 12,
+        "detail_dir": ROOT / "output" / "rolling_quarterly_v2_official",
         "source": ROOT / "output" / "rolling_quarterly_v2_official" / "comparison_index_levels.csv",
         "note": "正式版",
     },
@@ -27,13 +30,23 @@ STRATEGIES = [
         "name": "6M回撤优先(极致降回撤)",
         "selection_rule": "min_drawdown",
         "lookback_months": 6,
-        "source": None,
+        "detail_dir": ROOT / "output" / "rolling_quarterly_v2_risk_candidate_mindd6",
+        "source": ROOT / "output" / "rolling_quarterly_v2_risk_candidate_mindd6" / "comparison_index_levels.csv",
         "note": "纯压回撤",
+    },
+    {
+        "name": "12M收益优先(进攻版)",
+        "selection_rule": "max_return",
+        "lookback_months": 12,
+        "detail_dir": ROOT / "output" / "rolling_quarterly_v2_return_candidate_maxret12",
+        "source": ROOT / "output" / "rolling_quarterly_v2_return_candidate_maxret12" / "comparison_index_levels.csv",
+        "note": "冲收益",
     },
     {
         "name": "36M夏普护栏(均衡版)",
         "selection_rule": "sharpe_guard",
         "lookback_months": 36,
+        "detail_dir": ROOT / "output" / "rolling_quarterly_v2_risk_candidate_sharpe36",
         "source": ROOT / "output" / "rolling_quarterly_v2_risk_candidate_sharpe36" / "comparison_index_levels.csv",
         "note": "更均衡",
     },
@@ -41,6 +54,7 @@ STRATEGIES = [
         "name": "36MCalmar护栏(防守版)",
         "selection_rule": "calmar_guard",
         "lookback_months": 36,
+        "detail_dir": ROOT / "output" / "rolling_quarterly_v2_risk_candidate_calmar36",
         "source": ROOT / "output" / "rolling_quarterly_v2_risk_candidate_calmar36" / "comparison_index_levels.csv",
         "note": "更防守",
     },
@@ -50,6 +64,7 @@ COLOR_MAP = {
     "当前V2": "#243b53",
     "12M回撤优先(正式版)": "#d1495b",
     "6M回撤优先(极致降回撤)": "#edae49",
+    "12M收益优先(进攻版)": "#c1121f",
     "36M夏普护栏(均衡版)": "#00798c",
     "36MCalmar护栏(防守版)": "#4f772d",
 }
@@ -339,23 +354,45 @@ def _load_levels(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, index_col="date", parse_dates=["date"])
 
 
-def _build_common_metrics(common_summary: pd.DataFrame) -> pd.DataFrame:
+def _ensure_strategy_levels(args: argparse.Namespace, spec: Dict[str, object]) -> pd.DataFrame:
+    source = Path(spec["source"])
+    if source.exists():
+        return _load_levels(source)
+
+    result = run_study(
+        config_path=Path(args.config),
+        price_path=Path(args.prices),
+        output_dir=Path(spec["detail_dir"]),
+        valuation_path=Path(args.valuation) if args.valuation else None,
+        lookback_months=int(spec["lookback_months"]),
+        selection_rule=str(spec["selection_rule"]),
+        drawdown_band=float(args.drawdown_band),
+        write_outputs=True,
+    )
+    comparison_index = result["comparison_index"].copy()
+    comparison_index.index.name = "date"
+    return comparison_index
+
+
+def _build_common_metrics(levels: pd.DataFrame) -> pd.DataFrame:
     rows: List[Dict[str, object]] = []
-    baseline_anchor = common_summary.iloc[0]
+    sample_start = levels.index.min().strftime("%Y-%m-%d")
+    sample_end = levels.index.max().strftime("%Y-%m-%d")
+    current = _summary_metrics(levels["当前V2"], levels["当前V2"].pct_change(fill_method=None).fillna(0.0))
     rows.append(
         {
             "strategy": "当前V2",
             "selection_rule_label": "基准",
             "lookback_months": 0,
             "note": "当前配置",
-            "sample_start": baseline_anchor["sample_start"],
-            "sample_end": baseline_anchor["sample_end"],
-            "total_return": float(baseline_anchor["current_total_return"]),
-            "annual_return": float(baseline_anchor["current_annual_return"]),
-            "annual_volatility": float(baseline_anchor["current_annual_volatility"]),
-            "max_drawdown": float(baseline_anchor["current_max_drawdown"]),
-            "drawdown_depth": abs(float(baseline_anchor["current_max_drawdown"])),
-            "sharpe": float(baseline_anchor["current_sharpe"]),
+            "sample_start": sample_start,
+            "sample_end": sample_end,
+            "total_return": float(current["total_return"]),
+            "annual_return": float(current["annual_return"]),
+            "annual_volatility": float(current["annual_volatility"]),
+            "max_drawdown": float(current["max_drawdown"]),
+            "drawdown_depth": abs(float(current["max_drawdown"])),
+            "sharpe": float(current["sharpe"]),
             "annual_return_delta": 0.0,
             "drawdown_improvement": 0.0,
             "sharpe_delta": 0.0,
@@ -363,27 +400,24 @@ def _build_common_metrics(common_summary: pd.DataFrame) -> pd.DataFrame:
     )
 
     for spec in STRATEGIES:
-        row = common_summary.loc[
-            (common_summary["selection_rule"] == spec["selection_rule"])
-            & (common_summary["lookback_months"] == spec["lookback_months"])
-        ].iloc[0]
+        dynamic = _summary_metrics(levels[spec["name"]], levels[spec["name"]].pct_change(fill_method=None).fillna(0.0))
         rows.append(
             {
                 "strategy": spec["name"],
-                "selection_rule_label": row["selection_rule_label"],
-                "lookback_months": int(row["lookback_months"]),
+                "selection_rule_label": selection_rule_label(str(spec["selection_rule"])),
+                "lookback_months": int(spec["lookback_months"]),
                 "note": spec["note"],
-                "sample_start": row["sample_start"],
-                "sample_end": row["sample_end"],
-                "total_return": float(row["dynamic_total_return"]),
-                "annual_return": float(row["dynamic_annual_return"]),
-                "annual_volatility": float(row["dynamic_annual_volatility"]),
-                "max_drawdown": float(row["dynamic_max_drawdown"]),
-                "drawdown_depth": abs(float(row["dynamic_max_drawdown"])),
-                "sharpe": float(row["dynamic_sharpe"]),
-                "annual_return_delta": float(row["annual_return_delta"]),
-                "drawdown_improvement": float(row["drawdown_improvement"]),
-                "sharpe_delta": float(row["sharpe_delta"]),
+                "sample_start": sample_start,
+                "sample_end": sample_end,
+                "total_return": float(dynamic["total_return"]),
+                "annual_return": float(dynamic["annual_return"]),
+                "annual_volatility": float(dynamic["annual_volatility"]),
+                "max_drawdown": float(dynamic["max_drawdown"]),
+                "drawdown_depth": abs(float(dynamic["max_drawdown"])),
+                "sharpe": float(dynamic["sharpe"]),
+                "annual_return_delta": float(dynamic["annual_return"] - current["annual_return"]),
+                "drawdown_improvement": float(dynamic["max_drawdown"] - current["max_drawdown"]),
+                "sharpe_delta": float(dynamic["sharpe"] - current["sharpe"]),
             }
         )
 
@@ -392,27 +426,17 @@ def _build_common_metrics(common_summary: pd.DataFrame) -> pd.DataFrame:
 
 def _build_levels_table(args: argparse.Namespace) -> pd.DataFrame:
     levels_map: Dict[str, pd.Series] = {}
+    current_levels = None
 
-    official_levels = _load_levels(Path(STRATEGIES[0]["source"]))
-    levels_map["12M回撤优先(正式版)"] = official_levels["动态季度滚动"]
+    for spec in STRATEGIES:
+        comparison = _ensure_strategy_levels(args, spec)
+        levels_map[str(spec["name"])] = comparison["动态季度滚动"]
+        if current_levels is None:
+            current_levels = comparison["当前V2"]
 
-    six_month = run_study(
-        config_path=Path(args.config),
-        price_path=Path(args.prices),
-        output_dir=None,
-        valuation_path=Path(args.valuation) if args.valuation else None,
-        lookback_months=6,
-        selection_rule="min_drawdown",
-        drawdown_band=float(args.drawdown_band),
-        write_outputs=False,
-    )
-    levels_map["6M回撤优先(极致降回撤)"] = six_month["comparison_index"]["动态季度滚动"]
-
-    sharpe36_levels = _load_levels(Path(STRATEGIES[2]["source"]))
-    calmar36_levels = _load_levels(Path(STRATEGIES[3]["source"]))
-    levels_map["36M夏普护栏(均衡版)"] = sharpe36_levels["动态季度滚动"]
-    levels_map["36MCalmar护栏(防守版)"] = calmar36_levels["动态季度滚动"]
-    levels_map["当前V2"] = sharpe36_levels["当前V2"]
+    if current_levels is None:
+        raise ValueError("No strategy levels available.")
+    levels_map["当前V2"] = current_levels
 
     common_start = max(series.index.min() for series in levels_map.values())
     common_end = min(series.index.max() for series in levels_map.values())
@@ -433,9 +457,8 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    common_summary = pd.read_csv(args.common_summary)
-    metrics = _build_common_metrics(common_summary)
     levels = _build_levels_table(args)
+    metrics = _build_common_metrics(levels)
     drawdowns = levels.div(levels.cummax()) - 1.0
 
     metrics.to_csv(output_dir / "comparison_table.csv", index=False)

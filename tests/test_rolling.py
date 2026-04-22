@@ -37,6 +37,22 @@ def test_rank_candidates_prefers_shallower_drawdown_then_return() -> None:
     assert int(ranked.iloc[2]["candidate_index"]) == 2
 
 
+def test_rank_candidates_max_return_prefers_higher_return_then_quality() -> None:
+    metrics = pd.DataFrame(
+        [
+            {"annual_return": 0.10, "annual_volatility": 0.08, "max_drawdown": -0.06, "sharpe": 1.25, "calmar": 1.67},
+            {"annual_return": 0.15, "annual_volatility": 0.11, "max_drawdown": -0.09, "sharpe": 1.36, "calmar": 1.67},
+            {"annual_return": 0.15, "annual_volatility": 0.10, "max_drawdown": -0.08, "sharpe": 1.50, "calmar": 1.88},
+        ]
+    )
+
+    ranked = rank_candidates(metrics, selection_rule="max_return")
+
+    assert int(ranked.iloc[0]["candidate_index"]) == 2
+    assert int(ranked.iloc[1]["candidate_index"]) == 1
+    assert int(ranked.iloc[2]["candidate_index"]) == 0
+
+
 def test_rank_candidates_sharpe_guard_prefers_higher_sharpe_within_drawdown_band() -> None:
     metrics = pd.DataFrame(
         [
